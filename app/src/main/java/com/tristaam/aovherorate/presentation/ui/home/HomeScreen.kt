@@ -36,7 +36,6 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -52,9 +51,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.tooling.preview.PreviewParameter
-import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
@@ -62,7 +58,6 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.tristaam.aovherorate.R
 import com.tristaam.aovherorate.domain.model.GameMode
-import com.tristaam.aovherorate.domain.model.Hero
 import com.tristaam.aovherorate.domain.model.HeroRate
 import com.tristaam.aovherorate.domain.model.HeroType
 import org.koin.androidx.compose.koinViewModel
@@ -126,7 +121,6 @@ fun HomeScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HeroRateList(
     modifier: Modifier = Modifier,
@@ -224,6 +218,7 @@ fun HeroRateList(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FilterSection(
+    modifier: Modifier = Modifier,
     gameModes: List<GameMode>,
     heroTypes: List<HeroType>,
     onClickGameMode: (Int) -> Unit = {},
@@ -232,7 +227,6 @@ fun FilterSection(
     selectedRankPosition: Int,
     selectedHeroTypePosition: Int,
     onClickHeroType: (Int) -> Unit = {},
-    modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         var gameModeExpanded by remember { mutableStateOf(false) }
@@ -337,50 +331,6 @@ fun FilterSection(
                         }
                     )
                 }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun Dropdown(
-    label: String,
-    item: List<String>,
-    onClick: (Int) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var expanded by remember { mutableStateOf(false) }
-    var position by remember { mutableIntStateOf(0) }
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it },
-        modifier = modifier.fillMaxWidth()
-    ) {
-        OutlinedTextField(
-            value = item.getOrNull(position) ?: "",
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(text = label) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                .fillMaxWidth()
-        )
-
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            item.forEachIndexed { index, item ->
-                DropdownMenuItem(
-                    text = { Text(item) },
-                    onClick = {
-                        position = index
-                        onClick(index)
-                        expanded = false
-                    }
-                )
             }
         }
     }
@@ -523,39 +473,4 @@ fun RateWithProgressBar(
             )
         }
     }
-}
-
-@Preview
-@Composable
-fun HeroRateItemPreview(
-    @PreviewParameter(HeroRateProvider::class) heroRate: HeroRate,
-    modifier: Modifier = Modifier,
-) {
-    HeroRateItem(
-        modifier = modifier,
-        index = 1,
-        heroRate = heroRate
-    )
-}
-
-class HeroRateProvider : PreviewParameterProvider<HeroRate> {
-    override val values: Sequence<HeroRate>
-        get() = sequenceOf(
-            HeroRate(
-                hero = Hero(
-                    id = "508",
-                    name = "Wisp",
-                    image = "https://dl.ops.kgvn.garenanow.com/hok/client/web/H5itemicon/hero/120x120/508_120.jpg",
-                    type = HeroType(
-                        id = "4",
-                        name = "Xạ thủ",
-                        image = "https://dl.ops.kgvn.garenanow.com/hok/client/web/h5_winrate/mainpage/mainpage-icon-class-marksman.png",
-                        imageActive = "https://dl.ops.kgvn.garenanow.com/hok/client/web/h5_winrate/mainpage/mainpage-icon-class-marksman-light.png"
-                    )
-                ),
-                winRate = 57.3f,
-                pickRate = 3.08f,
-                banRate = 0.03f
-            )
-        )
 }
