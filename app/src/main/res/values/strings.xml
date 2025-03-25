@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">AoV Hero Rate</string>
+    <string name="no_hero_rate_data">Không có dữ liệu bảng xếp hạng</string>
+    <string name="win">Win</string>
+    <string name="pick">Pick</string>
+    <string name="ban">Ban</string>
+    <string name="rank">BXH</string>
+</resources>
