@@ -5,8 +5,13 @@ import com.tristaam.aovherorate.data.source.local.entity.HeroRateWithHeroRel
 import com.tristaam.aovherorate.data.source.remote.dto.server_trend.HeroRateResponse
 import com.tristaam.aovherorate.domain.model.HeroRate
 
-fun HeroRateResponse.toHeroRateEntity(rankId: String, gameModeId: String): HeroRateEntity {
+fun HeroRateResponse.toHeroRateEntity(
+    serverId: String,
+    rankId: String,
+    gameModeId: String
+): HeroRateEntity {
     return HeroRateEntity(
+        serverId = serverId,
         rankId = rankId,
         gameModeId = gameModeId,
         heroId = heroId,

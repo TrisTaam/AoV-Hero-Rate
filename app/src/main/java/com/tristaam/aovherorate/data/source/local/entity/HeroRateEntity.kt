@@ -6,12 +6,18 @@ import androidx.room.ForeignKey
 
 @Entity(
     tableName = "hero_rate",
-    primaryKeys = ["hero_id", "game_mode_id", "rank_id"],
+    primaryKeys = ["hero_id", "server_id", "game_mode_id", "rank_id"],
     foreignKeys = [
         ForeignKey(
             entity = HeroEntity::class,
             parentColumns = ["id"],
             childColumns = ["hero_id"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = ServerEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["server_id"],
             onDelete = ForeignKey.CASCADE
         ),
         ForeignKey(
@@ -31,6 +37,9 @@ import androidx.room.ForeignKey
 data class HeroRateEntity(
     @ColumnInfo(name = "hero_id")
     val heroId: String,
+
+    @ColumnInfo(name = "server_id")
+    val serverId: String,
 
     @ColumnInfo(name = "game_mode_id")
     val gameModeId: String,

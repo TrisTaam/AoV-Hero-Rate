@@ -4,7 +4,8 @@ import com.tristaam.aovherorate.domain.model.HeroRate
 import kotlinx.coroutines.flow.Flow
 
 interface HeroRateRepository {
-    fun getHeroRatesByGameModeIdAndRankIdAndHeroTypeId(
+    fun getHeroRatesByServerIdAndGameModeIdAndRankIdAndHeroTypeId(
+        serverId: String,
         gameModeId: String,
         rankId: String,
         heroTypeId: String

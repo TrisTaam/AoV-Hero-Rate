@@ -5,12 +5,14 @@ import com.tristaam.aovherorate.data.mapper.toHeroEntity
 import com.tristaam.aovherorate.data.mapper.toHeroRateEntity
 import com.tristaam.aovherorate.data.mapper.toHeroTypeEntity
 import com.tristaam.aovherorate.data.mapper.toRankEntity
+import com.tristaam.aovherorate.data.mapper.toServer
 import com.tristaam.aovherorate.data.source.local.dao.GameModeDao
 import com.tristaam.aovherorate.data.source.local.dao.GameModeRankDao
 import com.tristaam.aovherorate.data.source.local.dao.HeroDao
 import com.tristaam.aovherorate.data.source.local.dao.HeroRateDao
 import com.tristaam.aovherorate.data.source.local.dao.HeroTypeDao
 import com.tristaam.aovherorate.data.source.local.dao.RankDao
+import com.tristaam.aovherorate.data.source.local.dao.ServerDao
 import com.tristaam.aovherorate.data.source.local.entity.GameModeRankCrossRef
 import com.tristaam.aovherorate.data.source.local.entity.HeroEntity
 import com.tristaam.aovherorate.data.source.local.entity.HeroRateEntity
@@ -32,27 +34,38 @@ class RemoteRepositoryImpl(
     private val heroTypeDao: HeroTypeDao,
     private val heroDao: HeroDao,
     private val heroRateDao: HeroRateDao,
-    private val gameModeRankDao: GameModeRankDao
+    private val gameModeRankDao: GameModeRankDao,
+    private val serverDao: ServerDao
 ) : RemoteRepository {
     override fun getConfig(): Flow<Result<Unit>> = flow {
         emit(Result.Loading)
-        try {
-            val response = remoteService.getConfig()
-            mergeConfigIntoDatabase(response)
-            emit(Result.Success(Unit))
-        } catch (e: Exception) {
-            emit(Result.Error(e))
+        serverDao.getAllServerEntities().collect { serverEntities ->
+            if (serverEntities.isEmpty()) {
+                emit(Result.Error(Exception("No server found")))
+                return@collect
+            }
+            try {
+                val response = remoteService.getConfig(serverEntities[0].toServer())
+                mergeConfigIntoDatabase(response)
+                emit(Result.Success(Unit))
+            } catch (e: Exception) {
+                emit(Result.Error(e))
+            }
         }
     }.flowOn(Dispatchers.IO)
 
     override fun getServerTrend(): Flow<Result<Unit>> = flow {
         emit(Result.Loading)
-        try {
-            val response = remoteService.getServerTrend()
-            mergeServerTrendIntoDatabase(response)
-            emit(Result.Success(Unit))
-        } catch (e: Exception) {
-            emit(Result.Error(e))
+        serverDao.getAllServerEntities().collect { serverEntities ->
+            serverEntities.forEach { serverEntity ->
+                try {
+                    val response = remoteService.getServerTrend(serverEntity.toServer())
+                    mergeServerTrendIntoDatabase(serverEntity.id, response)
+                    emit(Result.Success(Unit))
+                } catch (e: Exception) {
+                    emit(Result.Error(e))
+                }
+            }
         }
     }.flowOn(Dispatchers.IO)
 
@@ -68,7 +81,10 @@ class RemoteRepositoryImpl(
             heroDao.upsertAllHeroEntities(heroEntities)
         }
 
-    private suspend fun mergeServerTrendIntoDatabase(response: Map<String, Map<String, List<HeroRateResponse>>>) =
+    private suspend fun mergeServerTrendIntoDatabase(
+        serverId: String,
+        response: Map<String, Map<String, List<HeroRateResponse>>>
+    ) =
         withContext(Dispatchers.IO) {
             val heroRateEntities = mutableListOf<HeroRateEntity>()
             val gameModeRankCrossRefs = mutableListOf<GameModeRankCrossRef>()
@@ -76,7 +92,13 @@ class RemoteRepositoryImpl(
                 ranks.forEach { (rank, heroRates) ->
                     gameModeRankCrossRefs.add(GameModeRankCrossRef(gameMode, rank))
                     heroRates.forEach { heroRateResponse ->
-                        heroRateEntities.add(heroRateResponse.toHeroRateEntity(rank, gameMode))
+                        heroRateEntities.add(
+                            heroRateResponse.toHeroRateEntity(
+                                serverId,
+                                rank,
+                                gameMode
+                            )
+                        )
                     }
                 }
             }

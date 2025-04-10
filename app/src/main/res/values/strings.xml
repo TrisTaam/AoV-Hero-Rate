@@ -4,5 +4,8 @@
     <string name="win">Win</string>
     <string name="pick">Pick</string>
     <string name="ban">Ban</string>
-    <string name="rank">BXH</string>
+    <string name="hero_rate">BXH</string>
+    <string name="rank">Hạng</string>
+    <string name="game_mode">Chế độ</string>
+    <string name="server">Máy chủ</string>
 </resources>

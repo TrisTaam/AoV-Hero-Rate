@@ -1,6 +1,8 @@
 package com.tristaam.aovherorate.presentation.ui.home
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -60,6 +62,7 @@ import com.tristaam.aovherorate.R
 import com.tristaam.aovherorate.domain.model.GameMode
 import com.tristaam.aovherorate.domain.model.HeroRate
 import com.tristaam.aovherorate.domain.model.HeroType
+import com.tristaam.aovherorate.domain.model.Server
 import org.koin.androidx.compose.koinViewModel
 import java.util.Locale
 
@@ -84,6 +87,11 @@ fun HomeScreen(
                 .padding(horizontal = 8.dp)
         ) {
             if (uiState.isInitial) return@PullToRefreshBox
+            val selectServer = remember<(Int) -> Unit> {
+                { position: Int ->
+                    homeViewModel.onAction(HomeAction.SelectServer(position))
+                }
+            }
             val selectGameMode = remember<(Int) -> Unit> {
                 { position: Int ->
                     homeViewModel.onAction(HomeAction.SelectGameMode(position))
@@ -105,14 +113,17 @@ fun HomeScreen(
                 }
             }
             HeroRateList(
+                servers = uiState.servers,
                 gameModes = uiState.gameModes,
                 heroTypes = uiState.heroTypes,
                 heroRates = uiState.heroRates,
                 sortType = uiState.sortType,
+                selectedServerPosition = uiState.selectedServerPosition,
                 selectedGameModePosition = uiState.selectedGameModePosition,
                 selectedRankPosition = uiState.selectedRankPosition,
                 selectedHeroTypePosition = uiState.selectedHeroTypePosition,
                 onClickSortType = selectSortType,
+                onClickServer = selectServer,
                 onClickGameMode = selectGameMode,
                 onClickRank = selectRank,
                 onClickHeroType = selectHeroType,
@@ -124,14 +135,17 @@ fun HomeScreen(
 @Composable
 fun HeroRateList(
     modifier: Modifier = Modifier,
+    servers: List<Server>,
     gameModes: List<GameMode>,
     heroTypes: List<HeroType>,
     heroRates: List<HeroRate>,
     sortType: SortType,
     onClickSortType: (SortType) -> Unit = {},
+    selectedServerPosition: Int,
     selectedGameModePosition: Int,
     selectedRankPosition: Int,
     selectedHeroTypePosition: Int,
+    onClickServer: (Int) -> Unit = {},
     onClickGameMode: (Int) -> Unit = {},
     onClickRank: (Int) -> Unit = {},
     onClickHeroType: (Int) -> Unit = {},
@@ -144,23 +158,23 @@ fun HeroRateList(
                 .fillMaxWidth()
                 .padding(8.dp)
         ) {
-            var expanded by remember { mutableStateOf(false) }
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable { expanded = !expanded }
                     .padding(8.dp)
             ) {
+                var expanded by remember { mutableStateOf(false) }
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { expanded = !expanded }
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = stringResource(R.string.rank),
+                        text = stringResource(R.string.hero_rate),
                         fontWeight = FontWeight.Bold
                     )
 
@@ -182,10 +196,13 @@ fun HeroRateList(
 
                 AnimatedVisibility(visible = expanded, modifier = Modifier.fillMaxWidth()) {
                     FilterSection(
+                        servers = servers,
                         gameModes = gameModes,
                         heroTypes = heroTypes,
+                        onClickServer = onClickServer,
                         onClickGameMode = onClickGameMode,
                         onClickHeroType = onClickHeroType,
+                        selectedServerPosition = selectedServerPosition,
                         selectedGameModePosition = selectedGameModePosition,
                         selectedRankPosition = selectedRankPosition,
                         selectedHeroTypePosition = selectedHeroTypePosition,
@@ -219,16 +236,54 @@ fun HeroRateList(
 @Composable
 fun FilterSection(
     modifier: Modifier = Modifier,
+    servers: List<Server>,
     gameModes: List<GameMode>,
     heroTypes: List<HeroType>,
+    onClickServer: (Int) -> Unit = {},
     onClickGameMode: (Int) -> Unit = {},
     onClickRank: (Int) -> Unit = {},
+    selectedServerPosition: Int,
     selectedGameModePosition: Int,
     selectedRankPosition: Int,
     selectedHeroTypePosition: Int,
     onClickHeroType: (Int) -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
+        var serverExpanded by remember { mutableStateOf(false) }
+        ExposedDropdownMenuBox(
+            expanded = serverExpanded,
+            onExpandedChange = { serverExpanded = it },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            OutlinedTextField(
+                value = servers.getOrNull(selectedServerPosition)?.name ?: "",
+                onValueChange = {},
+                readOnly = true,
+                label = { Text(text = stringResource(R.string.server)) },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = serverExpanded) },
+                modifier = Modifier
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                    .fillMaxWidth()
+            )
+
+            ExposedDropdownMenu(
+                expanded = serverExpanded,
+                onDismissRequest = { serverExpanded = false }
+            ) {
+                servers.forEachIndexed { index, server ->
+                    DropdownMenuItem(
+                        text = { Text(server.name) },
+                        onClick = {
+                            onClickServer(index)
+                            serverExpanded = false
+                        }
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         var gameModeExpanded by remember { mutableStateOf(false) }
         ExposedDropdownMenuBox(
             expanded = gameModeExpanded,
@@ -239,7 +294,7 @@ fun FilterSection(
                 value = gameModes.getOrNull(selectedGameModePosition)?.name ?: "",
                 onValueChange = {},
                 readOnly = true,
-                label = { Text(text = "Chế độ") },
+                label = { Text(text = stringResource(R.string.game_mode)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = gameModeExpanded) },
                 modifier = Modifier
                     .menuAnchor(MenuAnchorType.PrimaryNotEditable)
@@ -276,7 +331,7 @@ fun FilterSection(
                 )?.name ?: "",
                 onValueChange = {},
                 readOnly = true,
-                label = { Text(text = "Hạng") },
+                label = { Text(text = stringResource(R.string.rank)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = rankExpanded) },
                 modifier = Modifier
                     .menuAnchor(MenuAnchorType.PrimaryNotEditable)
@@ -462,8 +517,13 @@ fun RateWithProgressBar(
         )
 
         rate?.let { rate ->
+            val animatedProgress by animateFloatAsState(
+                targetValue = rate / 100f,
+                animationSpec = tween(durationMillis = 500)
+            )
+
             LinearProgressIndicator(
-                progress = { rate / 100f },
+                progress = { animatedProgress },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(4.dp)

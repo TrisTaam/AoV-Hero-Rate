@@ -6,10 +6,12 @@ import com.tristaam.aovherorate.domain.model.GameMode
 import com.tristaam.aovherorate.domain.model.HeroRate
 import com.tristaam.aovherorate.domain.model.HeroType
 import com.tristaam.aovherorate.domain.model.Result
+import com.tristaam.aovherorate.domain.model.Server
 import com.tristaam.aovherorate.domain.repository.GameModeRepository
 import com.tristaam.aovherorate.domain.repository.HeroRateRepository
 import com.tristaam.aovherorate.domain.repository.HeroTypeRepository
 import com.tristaam.aovherorate.domain.repository.RemoteRepository
+import com.tristaam.aovherorate.domain.repository.ServerRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -24,8 +26,11 @@ class HomeViewModel(
     private val remoteRepository: RemoteRepository,
     private val gameModeRepository: GameModeRepository,
     private val heroTypeRepository: HeroTypeRepository,
-    private val heroRateRepository: HeroRateRepository
+    private val heroRateRepository: HeroRateRepository,
+    private val serverRepository: ServerRepository
 ) : ViewModel() {
+    private val _selectedServerPosition = MutableStateFlow(0)
+
     private val _selectedGameModePosition = MutableStateFlow(0)
 
     private val _selectedRankPosition = MutableStateFlow(0)
@@ -35,6 +40,8 @@ class HomeViewModel(
     private val _refreshTrigger = MutableStateFlow(0)
 
     private val _sortType = MutableStateFlow(SortType.WIN_RATE_DESC)
+
+    private val servers = serverRepository.getAllServers()
 
     private val gameModes = gameModeRepository.getAllGameModes().map { gameModes ->
         val newGameModes = mutableListOf<GameMode>()
@@ -48,24 +55,54 @@ class HomeViewModel(
 
     private val heroTypes = heroTypeRepository.getAllHeroTypes()
 
+    private val servedId = combine(
+        servers,
+        _selectedServerPosition
+    ) { servers, selectedServerPosition ->
+        val serverId = servers.getOrNull(selectedServerPosition)?.id ?: "1"
+        serverId
+    }
+
+    private val gameModeId = combine(
+        gameModes,
+        _selectedGameModePosition
+    ) { gameModes, selectedGameModePosition ->
+        val gameModeId = gameModes.getOrNull(selectedGameModePosition)?.id ?: "4"
+        gameModeId
+    }
+
+    private val rankId = combine(
+        gameModes,
+        _selectedGameModePosition,
+        _selectedRankPosition
+    ) { gameModes, selectedGameModePosition, selectedRankPosition ->
+        val gameMode = gameModes.getOrNull(selectedGameModePosition)
+        val rankId = gameMode?.ranks?.getOrNull(selectedRankPosition)?.id ?: "-1"
+        rankId
+    }
+
+    private val heroTypeId = combine(
+        heroTypes,
+        _selectedHeroTypePosition
+    ) { heroTypes, selectedHeroTypePosition ->
+        val heroTypeId = heroTypes.getOrNull(selectedHeroTypePosition)?.id ?: "-1"
+        heroTypeId
+    }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     private val heroRates = combine(
-        gameModes,
-        heroTypes,
-        _selectedGameModePosition,
-        _selectedRankPosition,
-        _selectedHeroTypePosition,
-    ) { gameModes, heroTypes, selectedGameModePosition, selectedRankPosition, selectedHeroTypePosition ->
-        val gameMode = gameModes.getOrNull(selectedGameModePosition)
-        val gameModeId = gameMode?.id ?: "4"
-        val rankId = gameMode?.ranks?.getOrNull(selectedRankPosition)?.id ?: "-1"
-        val heroTypeId = heroTypes.getOrNull(selectedHeroTypePosition)?.id ?: "-1"
-        Triple(gameModeId, rankId, heroTypeId)
-    }.flatMapLatest { (gameModeId, rankId, heroTypeId) ->
-        heroRateRepository.getHeroRatesByGameModeIdAndRankIdAndHeroTypeId(
-            gameModeId,
-            rankId,
-            heroTypeId
+        servedId,
+        gameModeId,
+        rankId,
+        heroTypeId,
+    ) { serverId, gameModeId, rankId, heroTypeId ->
+        Pair(Pair(serverId, gameModeId), Pair(rankId, heroTypeId))
+    }.flatMapLatest { pair ->
+        heroRateRepository.getHeroRatesByServerIdAndGameModeIdAndRankIdAndHeroTypeId(
+            pair.first.first,
+            pair.first.second,
+            pair.second.first,
+            pair.second.second
         )
     }
 
@@ -86,14 +123,16 @@ class HomeViewModel(
         }
 
     val uiState = combine(
+        servers,
         gameModes,
         heroTypes,
         heroRates,
         remoteData,
-    ) { gameModes, heroTypes, heroRates, remoteResult ->
+    ) { servers, gameModes, heroTypes, heroRates, remoteResult ->
         when (remoteResult) {
             is Result.Loading -> HomeUIState(
                 isLoading = true,
+                servers = servers,
                 gameModes = gameModes,
                 heroTypes = heroTypes,
                 heroRates = heroRates
@@ -102,6 +141,7 @@ class HomeViewModel(
             is Result.Success -> HomeUIState(
                 isLoading = false,
                 errorMessage = null,
+                servers = servers,
                 gameModes = gameModes,
                 heroTypes = heroTypes,
                 heroRates = heroRates
@@ -110,11 +150,18 @@ class HomeViewModel(
             is Result.Error -> HomeUIState(
                 isLoading = false,
                 errorMessage = remoteResult.exception.message ?: "",
+                servers = servers,
                 gameModes = gameModes,
                 heroTypes = heroTypes,
                 heroRates = heroRates
             )
         }
+    }.combine(
+        _selectedServerPosition
+    ) { uiState, selectedServerPosition ->
+        uiState.copy(
+            selectedServerPosition = selectedServerPosition,
+        )
     }.combine(
         _selectedGameModePosition
     ) { uiState, selectedGameModePosition ->
@@ -159,6 +206,10 @@ class HomeViewModel(
                 refresh()
             }
 
+            is HomeAction.SelectServer -> {
+                selectServer(action.position)
+            }
+
             is HomeAction.SelectGameMode -> {
                 selectGameMode(action.position)
             }
@@ -180,6 +231,12 @@ class HomeViewModel(
     private fun refresh() {
         _refreshTrigger.update {
             it + 1
+        }
+    }
+
+    private fun selectServer(position: Int) {
+        _selectedServerPosition.update {
+            position
         }
     }
 
@@ -213,6 +270,7 @@ class HomeViewModel(
 
 sealed interface HomeAction {
     data object Refresh : HomeAction
+    data class SelectServer(val position: Int) : HomeAction
     data class SelectGameMode(val position: Int) : HomeAction
     data class SelectHeroType(val position: Int) : HomeAction
     data class SelectRank(val position: Int) : HomeAction
@@ -223,9 +281,11 @@ data class HomeUIState(
     val isInitial: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
+    val servers: List<Server> = emptyList(),
     val gameModes: List<GameMode> = emptyList(),
     val heroTypes: List<HeroType> = emptyList(),
     val heroRates: List<HeroRate> = emptyList(),
+    val selectedServerPosition: Int = 0,
     val selectedGameModePosition: Int = 0,
     val selectedHeroTypePosition: Int = 0,
     val selectedRankPosition: Int = 0,

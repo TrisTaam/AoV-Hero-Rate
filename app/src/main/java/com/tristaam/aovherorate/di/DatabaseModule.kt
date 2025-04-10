@@ -10,7 +10,10 @@ val databaseModule = module {
             get(),
             AoVHeroRateDatabase::class.java,
             AoVHeroRateDatabase.DATABASE_NAME
-        ).build()
+        )
+            .addCallback(AoVHeroRateDatabase.callback)
+            .addMigrations(AoVHeroRateDatabase.MIGRATION_1_2)
+            .build()
     }
 
     single { get<AoVHeroRateDatabase>().heroDao }
@@ -24,4 +27,6 @@ val databaseModule = module {
     single { get<AoVHeroRateDatabase>().rankDao }
 
     single { get<AoVHeroRateDatabase>().gameModeRankDao }
+
+    single { get<AoVHeroRateDatabase>().serverDao }
 }

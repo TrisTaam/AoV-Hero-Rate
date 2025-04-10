@@ -14,8 +14,8 @@ android {
         applicationId = "com.tristaam.aovherorate"
         minSdk = 28
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -38,6 +38,12 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+    defaultConfig {
+        buildConfigField("String", "BASE_URL_VN", "\"https://herowinrate.moba.garena.vn\"")
+        buildConfigField("String", "BASE_URL_TH", "\"https://herowinrate.moba.garena.in.th\"")
+        buildConfigField("String", "BASE_URL_TW", "\"https://herowinrate.moba.garena.tw\"")
     }
 }
 

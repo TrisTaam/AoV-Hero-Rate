@@ -18,11 +18,12 @@ interface HeroRateDao {
         """
         SELECT *
         FROM hero_rate
-        WHERE game_mode_id = :gameModeId AND rank_id = :rankId
+        WHERE server_id = :serverId AND game_mode_id = :gameModeId AND rank_id = :rankId
         ORDER BY win_rate DESC
     """
     )
-    fun getHeroRatesWithHeroRelByGameModeIdAndRankId(
+    fun getHeroRatesWithHeroRelByServerIdAndGameModeIdAndRankId(
+        serverId: String,
         gameModeId: String,
         rankId: String
     ): Flow<List<HeroRateWithHeroRel>>
@@ -34,11 +35,12 @@ interface HeroRateDao {
         FROM hero_rate
         JOIN hero ON hero_rate.hero_id = hero.id
         JOIN hero_type ON hero.hero_type_id = hero_type.id
-        WHERE game_mode_id = :gameModeId AND rank_id = :rankId AND hero.hero_type_id = :heroTypeId
+        WHERE server_id = :serverId AND game_mode_id = :gameModeId AND rank_id = :rankId AND hero.hero_type_id = :heroTypeId
         ORDER BY win_rate DESC
     """
     )
-    fun getHeroRatesWithHeroRelByGameModeIdAndRankIdAndHeroTypeId(
+    fun getHeroRatesWithHeroRelByServerIdAndGameModeIdAndRankIdAndHeroTypeId(
+        serverId: String,
         gameModeId: String,
         rankId: String,
         heroTypeId: String
