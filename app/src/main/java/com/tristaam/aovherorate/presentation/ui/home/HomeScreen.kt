@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -218,11 +219,12 @@ fun HeroRateList(
                     Text(text = stringResource(R.string.no_hero_rate_data))
                 }
             } else {
-                LazyColumn {
-                    itemsIndexed(heroRates) { index, heroRates ->
+                val listState = rememberLazyListState()
+                LazyColumn(state = listState) {
+                    itemsIndexed(items = heroRates) { index, heroRate ->
                         HeroRateItem(
                             index = index + 1,
-                            heroRate = heroRates,
+                            heroRate = heroRate,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
