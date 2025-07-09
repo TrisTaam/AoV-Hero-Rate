@@ -22,6 +22,9 @@ import com.tristaam.aovherorate.data.source.remote.service.RemoteService
 import com.tristaam.aovherorate.domain.model.Result
 import com.tristaam.aovherorate.domain.repository.RemoteRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -37,34 +40,31 @@ class RemoteRepositoryImpl(
     private val gameModeRankDao: GameModeRankDao,
     private val serverDao: ServerDao
 ) : RemoteRepository {
-    override fun getConfig(): Flow<Result<Unit>> = flow {
+    override fun getRemoteData(): Flow<Result<Unit>> = flow {
         emit(Result.Loading)
         serverDao.getAllServerEntities().collect { serverEntities ->
-            if (serverEntities.isEmpty()) {
-                emit(Result.Error(Exception("No server found")))
-                return@collect
-            }
             try {
-                val response = remoteService.getConfig(serverEntities[0].toServer())
-                mergeConfigIntoDatabase(response)
+                coroutineScope {
+                    val configDeferred =
+                        async { remoteService.getConfig(serverEntities[0].toServer()) }
+                    val serverTrendsDeferred = serverEntities.map { serverEntity ->
+                        async {
+                            serverEntity.id to remoteService.getServerTrend(serverEntity.toServer())
+                        }
+                    }
+
+                    val configResponse = configDeferred.await()
+                    mergeConfigIntoDatabase(configResponse)
+
+                    val serverTrendResults = serverTrendsDeferred.awaitAll()
+                    serverTrendResults.forEach { (serverId, serverTrendResponse) ->
+                        mergeServerTrendIntoDatabase(serverId, serverTrendResponse)
+                    }
+
+                }
                 emit(Result.Success(Unit))
             } catch (e: Exception) {
                 emit(Result.Error(e))
-            }
-        }
-    }.flowOn(Dispatchers.IO)
-
-    override fun getServerTrend(): Flow<Result<Unit>> = flow {
-        emit(Result.Loading)
-        serverDao.getAllServerEntities().collect { serverEntities ->
-            serverEntities.forEach { serverEntity ->
-                try {
-                    val response = remoteService.getServerTrend(serverEntity.toServer())
-                    mergeServerTrendIntoDatabase(serverEntity.id, response)
-                    emit(Result.Success(Unit))
-                } catch (e: Exception) {
-                    emit(Result.Error(e))
-                }
             }
         }
     }.flowOn(Dispatchers.IO)

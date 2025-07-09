@@ -6,7 +6,7 @@ A modern Android application that tracks win, pick and ban rates of heroes acros
 |----------------------------------------|----------------------------------------|
 
 ## Features 🌟
-- **Track** hero performance across different game modes and ranks.
+- **Track** hero performance across different servers, game modes and ranks.
 - **Dark Mode** for comfortable viewing.
 
 ## Tech Stack 🛠

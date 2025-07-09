@@ -112,14 +112,7 @@ class HomeViewModel(
             if (trigger == 0) {
                 return@flatMapLatest flowOf(Result.Success(System.currentTimeMillis()))
             }
-            remoteRepository.getConfig()
-                .flatMapLatest { configResult ->
-                    when (configResult) {
-                        is Result.Success -> remoteRepository.getServerTrend()
-                        is Result.Error -> flowOf(Result.Error(configResult.exception))
-                        is Result.Loading -> flowOf(Result.Loading)
-                    }
-                }
+            remoteRepository.getRemoteData()
         }
 
     val uiState = combine(
