@@ -88,27 +88,27 @@ fun HomeScreen(
                 .padding(horizontal = 8.dp)
         ) {
             if (uiState.isInitial) return@PullToRefreshBox
-            val selectServer = remember<(Int) -> Unit> {
+            val selectServer = remember {
                 { position: Int ->
                     homeViewModel.onAction(HomeAction.SelectServer(position))
                 }
             }
-            val selectGameMode = remember<(Int) -> Unit> {
+            val selectGameMode = remember {
                 { position: Int ->
                     homeViewModel.onAction(HomeAction.SelectGameMode(position))
                 }
             }
-            val selectRank = remember<(Int) -> Unit> {
+            val selectRank = remember {
                 { position: Int ->
                     homeViewModel.onAction(HomeAction.SelectRank(position))
                 }
             }
-            val selectHeroType = remember<(Int) -> Unit> {
+            val selectHeroType = remember {
                 { position: Int ->
                     homeViewModel.onAction(HomeAction.SelectHeroType(position))
                 }
             }
-            val selectSortType = remember<(SortType) -> Unit> {
+            val selectSortType = remember {
                 { sortType: SortType ->
                     homeViewModel.onAction(HomeAction.SelectSortType(sortType))
                 }
@@ -152,7 +152,7 @@ fun HeroRateList(
     onClickHeroType: (Int) -> Unit = {},
 ) {
     Card(
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier.fillMaxSize()
     ) {
         Column(
             modifier = Modifier
@@ -214,13 +214,21 @@ fun HeroRateList(
 
             HorizontalDivider(modifier = Modifier.fillMaxWidth())
 
-            if (heroRates.isEmpty()) {
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    Text(text = stringResource(R.string.no_hero_rate_data))
-                }
-            } else {
-                val listState = rememberLazyListState()
-                LazyColumn(state = listState) {
+            val listState = rememberLazyListState()
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                if (heroRates.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = stringResource(R.string.no_hero_rate_data))
+                        }
+                    }
+                } else {
                     itemsIndexed(items = heroRates) { index, heroRate ->
                         HeroRateItem(
                             index = index + 1,

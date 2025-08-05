@@ -54,11 +54,12 @@ class RemoteRepositoryImpl(
                     }
 
                     val configResponse = configDeferred.await()
+                    val heroIds = configResponse.heroes.keys
                     mergeConfigIntoDatabase(configResponse)
 
                     val serverTrendResults = serverTrendsDeferred.awaitAll()
                     serverTrendResults.forEach { (serverId, serverTrendResponse) ->
-                        mergeServerTrendIntoDatabase(serverId, serverTrendResponse)
+                        mergeServerTrendIntoDatabase(serverId, serverTrendResponse, heroIds)
                     }
 
                 }
@@ -83,7 +84,8 @@ class RemoteRepositoryImpl(
 
     private suspend fun mergeServerTrendIntoDatabase(
         serverId: String,
-        response: Map<String, Map<String, List<HeroRateResponse>>>
+        response: Map<String, Map<String, List<HeroRateResponse>>>,
+        heroIds: Set<String>
     ) =
         withContext(Dispatchers.IO) {
             val heroRateEntities = mutableListOf<HeroRateEntity>()
@@ -92,6 +94,7 @@ class RemoteRepositoryImpl(
                 ranks.forEach { (rank, heroRates) ->
                     gameModeRankCrossRefs.add(GameModeRankCrossRef(gameMode, rank))
                     heroRates.forEach { heroRateResponse ->
+                        if (heroRateResponse.heroId !in heroIds) return@forEach
                         heroRateEntities.add(
                             heroRateResponse.toHeroRateEntity(
                                 serverId,
